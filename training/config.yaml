@@ -1,0 +1,22 @@
+# YOLOv8 Fine-tuning Configuration
+# Docs: https://docs.ultralytics.com/modes/train/
+
+base_model: yolov8n.pt        # Start from nano pretrained weights
+data: dataset/data.yaml        # Dataset config
+
+# Training hyperparameters
+epochs: 50
+imgsz: 640
+batch: 16
+lr0: 0.01                      # Initial learning rate
+patience: 15                   # Early stopping patience (epochs without improvement)
+workers: 4                     # DataLoader workers
+
+# Device: 'cpu', '0' (GPU 0), '0,1' (multi-GPU)
+device: cpu
+
+# Output
+project: training/runs
+name: traffic_v1
+save_period: 10                # Save checkpoint every N epochs
+output_model: training/traffic_best.pt

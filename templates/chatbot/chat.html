@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card p-4">
+    <h5>AI Traffic Chatbot</h5>
+    <div id="chat-box"
+         style="height:420px;overflow-y:scroll;border:1px solid #dee2e6;padding:16px;border-radius:6px;background:#fff;">
+        <div class="bot-msg mb-2">
+            <strong>Bot:</strong> Salom! Quyidagi savollarni berishingiz mumkin:<br>
+            &bull; Bugun nechta mashina o'tdi?<br>
+            &bull; Kecha nechta truck o'tdi?<br>
+            &bull; Soat 10 dan 12 gacha nechta o'tdi?<br>
+            &bull; Eng band vaqt qaysi?<br>
+            &bull; Jami statistika
+        </div>
+    </div>
+    <div class="input-group mt-3">
+        <input type="text" id="user-input" class="form-control"
+               placeholder="Savolingizni yozing..." maxlength="500" autocomplete="off">
+        <div class="input-group-append">
+            <button class="btn btn-primary" id="send-btn">Yuborish</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function appendMsg(sender, text, cls) {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = cls + ' mb-2';
+    // escapeHtml prevents XSS when rendering user-supplied content
+    div.innerHTML = '<strong>' + escapeHtml(sender) + ':</strong> ' +
+                    escapeHtml(text).replace(/\n/g, '<br>');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function sendMessage() {
+    const input = document.getElementById('user-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    appendMsg('Siz', message, 'user-msg text-right');
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+
+    const csrfToken = '{{ csrf_token }}';
+    fetch('{% url "chat_response" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+        },
+        body: 'message=' + encodeURIComponent(message),
+    })
+    .then(r => r.json())
+    .then(data => {
+        appendMsg('Bot', data.response, 'bot-msg');
+    })
+    .catch(() => {
+        appendMsg('Bot', 'Xatolik yuz berdi. Qayta urinib ko\'ring.', 'bot-msg text-danger');
+    })
+    .finally(() => {
+        document.getElementById('send-btn').disabled = false;
+        input.focus();
+    });
+}
+
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+document.getElementById('user-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMessage();
+});
+</script>
+{% endblock %}

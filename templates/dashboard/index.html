@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-stat bg-primary text-white p-4">
+            <h5>Jami transportlar</h5>
+            <h2>{{ total_count }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat bg-success text-white p-4">
+            <h5>Bugungi kun</h5>
+            <h2>{{ today_count }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-stat bg-warning text-white p-4">
+            <h5>Haftalik (7 kun)</h5>
+            <h2>{{ weekly_count }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h5>Bugungi soatlik trafik</h5>
+            <canvas id="hourlyChart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h5>Transport turlari</h5>
+            <canvas id="typeChart" height="160"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card p-4">
+            <h5>Haftalik dinamika (oxirgi 7 kun)</h5>
+            <canvas id="dailyChart" height="60"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card p-4">
+            <h5>Oxirgi aniqlanganlar</h5>
+            <table class="table table-hover mt-3">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Object ID</th>
+                        <th>Turi</th>
+                        <th>Yo'nalishi</th>
+                        <th>Ishonch (%)</th>
+                        <th>Vaqti</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_detections %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.object_id }}</td>
+                        <td>
+                            <span class="badge badge-{% if log.vehicle_type == 'car' %}primary{% elif log.vehicle_type == 'bus' %}success{% elif log.vehicle_type == 'truck' %}warning{% else %}secondary{% endif %}">
+                                {{ log.vehicle_type }}
+                            </span>
+                        </td>
+                        <td>{{ log.direction }}</td>
+                        <td>{{ log.confidence|floatformat:1 }}%</td>
+                        <td>{{ log.detected_time|date:"d.m.Y H:i:s" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Hozircha ma'lumot yo'q.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+const COLORS = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6c757d'];
+
+// Hourly bar chart
+new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ hourly_labels|safe }},
+        datasets: [{
+            label: 'Transportlar soni',
+            data: {{ hourly_data|safe }},
+            backgroundColor: '#007bff',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+});
+
+// Type pie/doughnut chart
+new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ type_labels|safe }},
+        datasets: [{
+            data: {{ type_data|safe }},
+            backgroundColor: COLORS,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+
+// Daily line chart
+new Chart(document.getElementById('dailyChart'), {
+    type: 'line',
+    data: {
+        labels: {{ daily_labels|safe }},
+        datasets: [{
+            label: 'Kunlik transportlar',
+            data: {{ daily_data|safe }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40,167,69,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+});
+
+// Auto-refresh every 60 seconds
+setTimeout(() => location.reload(), 60000);
+</script>
+{% endblock %}
